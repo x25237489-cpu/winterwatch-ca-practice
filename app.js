@@ -224,6 +224,14 @@ function loadSettings() {
   try {
     saved = JSON.parse(localStorage.getItem('winterwatch.settings') || '{}');
     if (!saved.key) {
+      // The first Winter Watch repository shares this GitHub Pages origin but used a different storage name.
+      const firstProject = JSON.parse(localStorage.getItem('winterwatch.connection.v1') || 'null');
+      if (firstProject?.key && firstProject.model && ['groq', 'openai', 'anthropic', 'gemini'].includes(firstProject.provider)) {
+        saved = { provider: firstProject.provider === 'gemini' ? 'google' : firstProject.provider, model: firstProject.model, key: firstProject.key, inputPrice: '', outputPrice: '' };
+        localStorage.setItem('winterwatch.settings', JSON.stringify(saved));
+      }
+    }
+    if (!saved.key) {
       // Part 1 of this same repository used these names. Preserve that saved key after the upgrade.
       const legacyKey = localStorage.getItem('groqApiKey');
       if (legacyKey) {
@@ -252,7 +260,7 @@ function saveSettings() {
     $('askStatus').textContent = 'Saved connection ready. Ask your question.';
   } catch { $('settingsStatus').textContent = 'Browser storage is unavailable. Use a trusted browser and try again.'; }
 }
-function forgetKey() { try { localStorage.removeItem('winterwatch.settings'); localStorage.removeItem('groqApiKey'); localStorage.removeItem('groqModel'); savedSettings = null; $('apiKey').value = ''; $('apiKey').placeholder = 'Paste your own key here'; $('settingsStatus').textContent = 'Key forgotten in this browser.'; $('askStatus').textContent = 'Set your provider and key in Settings first.'; } catch { $('settingsStatus').textContent = 'Could not clear browser storage; clear this site’s data manually.'; } }
+function forgetKey() { try { localStorage.removeItem('winterwatch.settings'); localStorage.removeItem('winterwatch.connection.v1'); localStorage.removeItem('groqApiKey'); localStorage.removeItem('groqModel'); savedSettings = null; $('apiKey').value = ''; $('apiKey').placeholder = 'Paste your own key here'; $('settingsStatus').textContent = 'Key forgotten in this browser.'; $('askStatus').textContent = 'Set your provider and key in Settings first.'; } catch { $('settingsStatus').textContent = 'Could not clear browser storage; clear this site’s data manually.'; } }
 
 async function ask() {
   const question = $('question').value.trim(), provider = savedSettings?.provider, model = savedSettings?.model, key = savedSettings?.key;
