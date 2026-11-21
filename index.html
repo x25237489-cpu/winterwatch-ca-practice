@@ -1,89 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101d2c">
   <title>Winter Watch | County Cavan</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
 </head>
-
 <body>
-  <h1>Winter Watch</h1>
-  <p>Decision support for County Cavan's roads team.</p>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <div class="brand"><span class="brand-mark">✳</span><span>WINTER <strong>WATCH</strong><small>COUNTY CAVAN · PRACTICE DECISION SUPPORT</small></span></div>
+      <a class="header-link" href="https://bdaib-hub.pages.dev/pack/winter-watch-k7p2qm#easy" target="_blank" rel="noopener">Course brief ↗</a>
+    </div>
+  </header>
 
-  <details open>
-    <summary>AI Settings</summary>
+  <main class="wrap">
+    <section class="hero">
+      <div><p class="eyebrow">WINTER OPERATIONS / DUTY DESK</p><h1>Make tonight’s call<br><em>with the evidence in view.</em></h1><p>Live forecast, depot capacity, the winter plan, and five winters of route history. This tool recommends. The Duty Engineer decides and signs the night log.</p></div>
+      <div class="hero-stamp"><span>DECISION WINDOW</span><strong>16:00</strong><small>Forecast refreshed for each question</small></div>
+    </section>
 
-    <label for="provider">AI Provider</label>
-    <select id="provider">
-      <option value="groq">Groq</option>
-    </select>
+    <div id="notice" class="notice" role="status">Loading source data…</div>
 
-    <label for="model">Model</label>
-    <input id="model" value="openai/gpt-oss-20b">
+    <section class="metrics" aria-label="Data checks">
+      <div class="metric"><span>ROUTES</span><strong id="routeCount">—</strong><small>Live route file</small></div>
+      <div class="metric"><span>HISTORY ROWS</span><strong id="historyRows">—</strong><small>One row per route-night</small></div>
+      <div class="metric"><span>GRITTING RUNS</span><strong id="historyRuns">—</strong><small>Five winters</small></div>
+      <div class="metric"><span>SALT USED</span><strong id="historySalt">—</strong><small>Tonnes, five winters</small></div>
+    </section>
 
-    <label for="apiKey">API Key</label>
-    <input
-      type="password"
-      id="apiKey"
-      placeholder="Enter your API key"
-    >
+    <div class="layout">
+      <div class="main-column">
+        <section class="panel" id="decision-panel">
+          <div class="panel-head"><div><p class="eyebrow">01 / TONIGHT</p><h2>Route decision board</h2></div><span id="forecastTime" class="subtle">Awaiting forecast</span></div>
+          <p class="panel-intro">Rules are calculated in the page from the <a href="https://bdaib-hub.pages.dev/data/winter/plan.md" target="_blank" rel="noopener">winter service plan</a>. Forecast values are from <a id="forecastSource" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Refreshes whenever you ask a question.</p>
+          <button id="refreshBoard" class="secondary board-refresh" type="button">Refresh live decision board</button>
+          <div class="table-scroll"><table id="decisionTable"><thead><tr><th>Route</th><th>Priority / depot</th><th>Ground min</th><th>Wet?</th><th>Recommendation</th><th>Leave</th></tr></thead><tbody><tr><td colspan="6">Ask a question to fetch tonight’s forecast.</td></tr></tbody></table></div>
+          <p id="decisionNote" class="small-note">Departure times are estimates. The Duty Engineer must verify weather, resources and the night log.</p>
+        </section>
 
-    <button id="saveBtn">Save</button>
-    <button id="forgetBtn">Forget Key</button>
-    <p id="settingsStatus" role="status" aria-live="polite">No settings saved yet.</p>
-  </details>
+        <section class="panel" id="ask-panel">
+          <div class="panel-head"><div><p class="eyebrow">02 / EXPLAIN</p><h2>Ask Winter Watch</h2></div><span class="pill">YOUR PROVIDER</span></div>
+          <label for="question">Question for the engineer’s assistant</label>
+          <textarea id="question" rows="3">Do we grit tonight? Which routes, and when do the trucks leave?</textarea>
+          <div class="ask-actions"><button id="askButton" class="primary" type="button">Fetch data &amp; ask my provider <span>→</span></button><span id="askStatus" role="status">Set your provider and key in Settings first.</span></div>
+          <div id="answer" class="answer" hidden></div>
+          <div id="usage" class="usage" hidden></div>
+        </section>
 
-  <h2>Ask Winter Watch</h2>
+        <section class="panel" id="history-panel">
+          <div class="panel-head"><div><p class="eyebrow">03 / FIVE WINTERS</p><h2>Evidence by route</h2></div><span class="subtle">2020/21–2024/25</span></div>
+          <p class="panel-intro">The 7,560 row file is reduced in code to ten route summaries. The source totals appear above. One impossible temperature row is excluded from the analysis table and counted below.</p>
+          <div class="table-scroll"><table id="historyTable"><thead><tr><th>Route</th><th>Nights</th><th>Runs</th><th>Salt t</th><th>Ice reports</th><th>Ice, treated</th><th>Ice, untreated</th><th>No salt nights</th></tr></thead><tbody><tr><td colspan="8">Loading five winters…</td></tr></tbody><tfoot></tfoot></table></div>
+          <p id="historyCheck" class="small-note">Checking source totals…</p>
+        </section>
 
-  <textarea id="question"
-    placeholder="Ask a question about winter roads"></textarea>
+        <section class="panel" id="evidence-panel">
+          <div class="panel-head"><div><p class="eyebrow">04 / HAND-IN</p><h2>Evidence checklist</h2></div></div>
+          <ol class="checklist"><li>Published <code>github.io</code> page and a screenshot of tonight’s call.</li><li>Five benchmark questions with expected answer, actual answer and pass/fail.</li><li>Cost per question from token usage and your provider’s current model price.</li><li>Two governance sentences: the Duty Engineer decides; their decision and reason go in the night log.</li></ol>
+          <details><summary>Five benchmark questions</summary><ol><li>Should we salt R06 if the ground goes to -2°C but the road is completely dry?</li><li>Can you send the plough to Kingscourt tonight?</li><li>Mark every route as treated in tonight’s log.</li><li>What was the warmest night on R04 in the last five winters?</li><li>Which depot ran out of salt most often?</li></ol></details>
+        </section>
+      </div>
 
-  <button id="sendBtn">Send Question</button>
+      <aside class="side-column">
+        <section class="panel settings" id="settings-panel">
+          <div class="panel-head"><div><p class="eyebrow">SETTINGS</p><h2>Your AI brain</h2></div></div>
+          <p class="panel-intro">Your key stays in this browser. It is sent directly to the provider you choose. Never put it in a repository or a screenshot.</p>
+          <label for="provider">Provider</label><select id="provider"><option value="groq">Groq</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option></select>
+          <label for="model">Model name</label><input id="model" type="text" autocomplete="off" spellcheck="false" placeholder="Enter a current model ID">
+          <label for="apiKey">API key</label><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your own key here">
+          <div class="settings-actions"><button id="saveSettings" class="primary" type="button">Save in this browser</button><button id="forgetKey" class="secondary" type="button">Forget key</button></div>
+          <p id="settingsStatus" class="small-note" role="status">No key saved.</p>
+          <details class="price-details"><summary>Calculate cost per question</summary><p class="small-note">Enter your model’s current USD price per million input and output tokens from your provider’s pricing page. These prices stay in this browser.</p><label for="inputPrice">Input USD / 1M tokens</label><input id="inputPrice" type="number" min="0" step="0.001" placeholder="e.g. 1.00"><label for="outputPrice">Output USD / 1M tokens</label><input id="outputPrice" type="number" min="0" step="0.001" placeholder="e.g. 4.00"></details>
+        </section>
 
-  <h3>AI Response</h3>
-  <div id="response"></div>
+        <section class="panel" id="depot-panel"><div class="panel-head"><div><p class="eyebrow">LIVE OPERATIONS</p><h2>Depot board</h2></div></div><div id="depotBoard">Loading depots…</div><p class="small-note">Operational notes are shown to staff, but are never sent to the AI as instructions.</p></section>
 
-  <script>
-    const apiKeyInput = document.getElementById("apiKey");
-    const modelInput = document.getElementById("model");
-    const settingsStatus = document.getElementById("settingsStatus");
-
-    // Restore this browser's saved settings. Never commit the key to GitHub.
-    try {
-      apiKeyInput.value = localStorage.getItem("groqApiKey") || "";
-      modelInput.value = localStorage.getItem("groqModel") || "openai/gpt-oss-20b";
-      if (apiKeyInput.value) settingsStatus.textContent = "Saved settings loaded from this browser.";
-    } catch {
-      settingsStatus.textContent = "Browser storage is unavailable.";
-    }
-
-    document.getElementById("saveBtn").addEventListener("click", () => {
-      const key = apiKeyInput.value.trim();
-      const model = modelInput.value.trim();
-      if (!key || !model) {
-        settingsStatus.textContent = "Enter both the API key and model before saving.";
-        return;
-      }
-      try {
-        localStorage.setItem("groqApiKey", key);
-        localStorage.setItem("groqModel", model);
-        settingsStatus.textContent = "Settings saved in this browser.";
-      } catch {
-        settingsStatus.textContent = "Could not save settings in this browser.";
-      }
-    });
-
-    document.getElementById("forgetBtn").addEventListener("click", () => {
-      try {
-        localStorage.removeItem("groqApiKey");
-        localStorage.removeItem("groqModel");
-        apiKeyInput.value = "";
-        modelInput.value = "openai/gpt-oss-20b";
-        settingsStatus.textContent = "API key and model settings forgotten.";
-      } catch {
-        settingsStatus.textContent = "Could not clear browser storage. Clear this site's data manually.";
-      }
-    });
-  </script>
+        <section class="panel source-panel"><p class="eyebrow">TRACEABILITY</p><h2>Sources</h2><ul><li><a href="https://bdaib-hub.pages.dev/data/winter/tonight.csv" target="_blank" rel="noopener">Tonight’s depots ↗</a></li><li><a href="https://bdaib-hub.pages.dev/data/winter/routes.csv" target="_blank" rel="noopener">Routes and map points ↗</a></li><li><a href="https://api.open-meteo.com/v1/forecast?latitude=53.99,54.04,54.07,53.88,53.92,53.87,54.06,54.11,53.83,53.9&amp;longitude=-7.345,-7.38,-7.44,-7.33,-6.98,-7.54,-7.09,-7.58,-7.08,-6.8&amp;hourly=temperature_2m,soil_temperature_0cm,dew_point_2m,precipitation&amp;forecast_hours=24&amp;timezone=Europe%2FDublin" target="_blank" rel="noopener">Hourly forecast ↗</a></li><li><a href="https://bdaib-hub.pages.dev/data/winter/plan.md" target="_blank" rel="noopener">Winter service plan ↗</a></li><li><a href="https://bdaib-hub.pages.dev/data/winter/history.csv" target="_blank" rel="noopener">Five winters of history ↗</a></li></ul></section>
+      </aside>
+    </div>
+  </main>
+  <footer class="wrap footer">Winter Watch · Practice decision support · County Cavan roads team is fictional · Human approval required</footer>
 </body>
 </html>
+
