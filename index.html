@@ -30,6 +30,7 @@
 
     <button id="saveBtn">Save</button>
     <button id="forgetBtn">Forget Key</button>
+    <p id="settingsStatus" role="status" aria-live="polite">No settings saved yet.</p>
   </details>
 
   <h2>Ask Winter Watch</h2>
@@ -42,5 +43,47 @@
   <h3>AI Response</h3>
   <div id="response"></div>
 
+  <script>
+    const apiKeyInput = document.getElementById("apiKey");
+    const modelInput = document.getElementById("model");
+    const settingsStatus = document.getElementById("settingsStatus");
+
+    // Restore this browser's saved settings. Never commit the key to GitHub.
+    try {
+      apiKeyInput.value = localStorage.getItem("groqApiKey") || "";
+      modelInput.value = localStorage.getItem("groqModel") || "openai/gpt-oss-20b";
+      if (apiKeyInput.value) settingsStatus.textContent = "Saved settings loaded from this browser.";
+    } catch {
+      settingsStatus.textContent = "Browser storage is unavailable.";
+    }
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const key = apiKeyInput.value.trim();
+      const model = modelInput.value.trim();
+      if (!key || !model) {
+        settingsStatus.textContent = "Enter both the API key and model before saving.";
+        return;
+      }
+      try {
+        localStorage.setItem("groqApiKey", key);
+        localStorage.setItem("groqModel", model);
+        settingsStatus.textContent = "Settings saved in this browser.";
+      } catch {
+        settingsStatus.textContent = "Could not save settings in this browser.";
+      }
+    });
+
+    document.getElementById("forgetBtn").addEventListener("click", () => {
+      try {
+        localStorage.removeItem("groqApiKey");
+        localStorage.removeItem("groqModel");
+        apiKeyInput.value = "";
+        modelInput.value = "openai/gpt-oss-20b";
+        settingsStatus.textContent = "API key and model settings forgotten.";
+      } catch {
+        settingsStatus.textContent = "Could not clear browser storage. Clear this site's data manually.";
+      }
+    });
+  </script>
 </body>
 </html>
