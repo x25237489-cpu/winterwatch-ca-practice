@@ -9,6 +9,7 @@ const SOURCE = {
 const CAPACITY = { Cavan: 900, Ballyjamesduff: 420, Bailieborough: 18, Cootehill: 300, Virginia: 320 };
 const LIMIT = { 1: 1, 2: 0.5, 3: -1 };
 const state = { routes: [], depots: [], plan: '', history: [], summary: [], invalid: 0, rawTotals: null, decision: [], forecastUrl: '', forecastWindow: '' };
+let savedSettings = null;
 const $ = id => document.getElementById(id);
 const number = value => String(value ?? '').trim() === '' ? NaN : Number(String(value).trim());
 const fmt = (value, places = 1) => (Math.round((Number(value) + 1e-9) * 10 ** places) / 10 ** places).toFixed(places);
@@ -219,23 +220,45 @@ async function callProvider(provider, model, key, message) {
 }
 
 function loadSettings() {
-  let saved = {}; try { saved = JSON.parse(localStorage.getItem('winterwatch.settings') || '{}'); } catch { /* Ignore corrupt local settings. */ }
-  $('provider').value = saved.provider || 'groq'; $('model').value = saved.model || 'openai/gpt-oss-20b';
-  $('apiKey').value = saved.key || ''; $('inputPrice').value = saved.inputPrice ?? ''; $('outputPrice').value = saved.outputPrice ?? '';
-  $('settingsStatus').textContent = saved.key ? 'Key saved in this browser only.' : 'No key saved.';
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem('winterwatch.settings') || '{}');
+    if (!saved.key) {
+      // Part 1 of this same repository used these names. Preserve that saved key after the upgrade.
+      const legacyKey = localStorage.getItem('groqApiKey');
+      if (legacyKey) {
+        saved = { provider: 'groq', model: localStorage.getItem('groqModel') || 'openai/gpt-oss-20b', key: legacyKey, inputPrice: '', outputPrice: '' };
+        localStorage.setItem('winterwatch.settings', JSON.stringify(saved));
+        localStorage.removeItem('groqApiKey'); localStorage.removeItem('groqModel');
+      }
+    }
+  } catch { saved = {}; }
+  savedSettings = saved.key && saved.model && ['groq', 'openai', 'anthropic', 'google'].includes(saved.provider) ? saved : null;
+  $('provider').value = savedSettings?.provider || 'groq'; $('model').value = savedSettings?.model || 'openai/gpt-oss-20b';
+  $('apiKey').value = ''; $('inputPrice').value = saved.inputPrice ?? ''; $('outputPrice').value = saved.outputPrice ?? '';
+  $('apiKey').placeholder = savedSettings ? 'Saved key ready — enter only to replace it' : 'Paste your own key here';
+  $('settingsStatus').textContent = savedSettings ? `Connected to ${$('provider').selectedOptions[0].text} in this browser. The saved key is used automatically.` : 'No key saved.';
+  $('askStatus').textContent = savedSettings ? 'Saved connection ready. Ask your question.' : 'Set your provider and key in Settings first.';
 }
 function saveSettings() {
-  const provider = $('provider').value, model = $('model').value.trim(), key = $('apiKey').value.trim();
-  if (!model || !key) { $('settingsStatus').textContent = 'Enter a model name and your own key first.'; return; }
-  try { localStorage.setItem('winterwatch.settings', JSON.stringify({ provider, model, key, inputPrice: $('inputPrice').value, outputPrice: $('outputPrice').value })); $('settingsStatus').textContent = 'Saved in this browser. Your key is not in the page code.'; }
-  catch { $('settingsStatus').textContent = 'Browser storage is unavailable. Use a trusted browser and try again.'; }
+  const provider = $('provider').value, model = $('model').value.trim();
+  const key = $('apiKey').value.trim() || (savedSettings?.provider === provider ? savedSettings.key : '');
+  if (!model || !key) { $('settingsStatus').textContent = 'Enter a model and a key for this provider first.'; return; }
+  const next = { provider, model, key, inputPrice: $('inputPrice').value, outputPrice: $('outputPrice').value };
+  try {
+    localStorage.setItem('winterwatch.settings', JSON.stringify(next)); savedSettings = next;
+    $('apiKey').value = ''; $('apiKey').placeholder = 'Saved key ready — enter only to replace it';
+    $('settingsStatus').textContent = `Connected to ${$('provider').selectedOptions[0].text} in this browser. The saved key is used automatically.`;
+    $('askStatus').textContent = 'Saved connection ready. Ask your question.';
+  } catch { $('settingsStatus').textContent = 'Browser storage is unavailable. Use a trusted browser and try again.'; }
 }
-function forgetKey() { try { localStorage.removeItem('winterwatch.settings'); $('apiKey').value = ''; $('settingsStatus').textContent = 'Key forgotten in this browser.'; } catch { $('settingsStatus').textContent = 'Could not clear browser storage; clear this site’s data manually.'; } }
+function forgetKey() { try { localStorage.removeItem('winterwatch.settings'); localStorage.removeItem('groqApiKey'); localStorage.removeItem('groqModel'); savedSettings = null; $('apiKey').value = ''; $('apiKey').placeholder = 'Paste your own key here'; $('settingsStatus').textContent = 'Key forgotten in this browser.'; $('askStatus').textContent = 'Set your provider and key in Settings first.'; } catch { $('settingsStatus').textContent = 'Could not clear browser storage; clear this site’s data manually.'; } }
 
 async function ask() {
-  const question = $('question').value.trim(), provider = $('provider').value, model = $('model').value.trim(), key = $('apiKey').value.trim();
+  const question = $('question').value.trim(), provider = savedSettings?.provider, model = savedSettings?.model, key = savedSettings?.key;
   if (!question) { $('askStatus').textContent = 'Enter a question.'; return; }
-  if (!model || !key) { $('askStatus').textContent = 'Enter a model and key in Settings first.'; return; }
+  if (!model || !key) { $('askStatus').textContent = 'Save your provider, model and key in Settings first.'; return; }
+  if ($('provider').value !== provider || $('model').value.trim() !== model || $('apiKey').value.trim()) { $('askStatus').textContent = 'Save your changed Settings before asking.'; return; }
   $('askButton').disabled = true; $('askStatus').textContent = 'Refreshing sources and calculating the route board…';
   try {
     await refreshTonight();
@@ -260,7 +283,7 @@ async function init() {
     state.routes = parseCsv(routesCsv); state.plan = plan; state.history = parseCsv(historyCsv); state.depots = parseCsv(depotCsv);
     if (state.routes.length !== 10) throw new Error(`Expected ten routes, got ${state.routes.length}.`);
     const totals = summariseHistory(state.history); renderHistory(totals); renderDepots();
-    setNotice('Sources loaded. History checks complete. Add your provider in Settings, then ask tonight’s question.');
+    setNotice(savedSettings ? 'Sources loaded. History checks complete. Your saved connection is ready.' : 'Sources loaded. History checks complete. Add your provider in Settings, then ask tonight’s question.');
   } catch (error) { setNotice(`Source loading failed: ${error.message}`, true); $('askStatus').textContent = 'Source loading failed; check the source links and reload.'; }
 }
 init();
