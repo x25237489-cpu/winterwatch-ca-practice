@@ -51,7 +51,7 @@ export default {
       provider = await fetch(GROQ_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.GROQ_API_KEY}` },
-        body: JSON.stringify({ model: MODEL, max_completion_tokens: 900, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: body.message }] })
+        body: JSON.stringify({ model: MODEL, max_completion_tokens: 4096, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: body.message }] })
       });
     } catch { return json({ error: 'The AI provider could not be reached.' }, 502, origin); }
     let data;
