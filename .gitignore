@@ -1,0 +1,9 @@
+.qa/
+routes.csv
+tonight.csv
+plan.md
+history.csv
+.env
+.dev.vars
+worker/.dev.vars
+
