@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Winter Watch | County Cavan</title>
+</head>
+
+<body>
+  <h1>Winter Watch</h1>
+  <p>Decision support for County Cavan's roads team.</p>
+
+  <details open>
+    <summary>AI Settings</summary>
+
+    <label for="provider">AI Provider</label>
+    <select id="provider">
+      <option value="groq">Groq</option>
+    </select>
+
+    <label for="model">Model</label>
+    <input id="model" value="openai/gpt-oss-20b">
+
+    <label for="apiKey">API Key</label>
+    <input
+      type="password"
+      id="apiKey"
+      placeholder="Enter your API key"
+    >
+
+    <button id="saveBtn">Save</button>
+    <button id="forgetBtn">Forget Key</button>
+  </details>
+
+  <h2>Ask Winter Watch</h2>
+
+  <textarea id="question"
+    placeholder="Ask a question about winter roads"></textarea>
+
+  <button id="sendBtn">Send Question</button>
+
+  <h3>AI Response</h3>
+  <div id="response"></div>
+
+</body>
+</html>
