@@ -101,6 +101,8 @@ const state = { routes: [], depots: [], plan: '', history: [], summary: [], inva
 // Set this to the Render service's public /ask URL after deployment. Never put the key here.
 const RELAY_URL = 'https://winterwatch-ca-api.onrender.com/ask';
 let savedSettings = null;
+let relayReady = false;
+let relayCheck = null;
 const $ = id => document.getElementById(id);
 const number = value => String(value ?? '').trim() === '' ? NaN : Number(String(value).trim());
 const fmt = (value, places = 1) => (Math.round((Number(value) + 1e-9) * 10 ** places) / 10 ** places).toFixed(places);
@@ -359,17 +361,36 @@ function loadSettings() {
   $('askStatus').textContent = savedSettings ? 'Saved connection ready. Ask your question.' : 'Set your provider and key in Settings first.';
 }
 async function checkRelay() {
-  if (!RELAY_URL) return;
-  try {
-    const response = await fetch(RELAY_URL.replace(/\/ask$/, '/health'), { cache: 'no-store' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const health = await response.json();
-    $('settingsStatus').textContent = health.configured ? 'Private AI connection ready. No key entry needed.' : 'The owner must finish configuring the private Groq key on Render.';
-    $('askStatus').textContent = health.configured ? 'Ask a question. The AI service may take a minute to wake.' : 'The AI service is not configured yet. The owner must add the Groq key on Render.';
-  } catch {
-    $('settingsStatus').textContent = 'The private AI service is waking or temporarily unavailable.';
-    $('askStatus').textContent = 'The AI service may take a minute to wake. Please try again shortly.';
-  }
+  if (!RELAY_URL || relayReady) return true;
+  if (relayCheck) return relayCheck;
+  relayCheck = (async () => {
+    const deadline = Date.now() + 150000;
+    while (Date.now() < deadline) {
+      try {
+        const response = await fetch(RELAY_URL.replace(/\/ask$/, '/health'), { cache: 'no-store', signal: AbortSignal.timeout(30000) });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const health = await response.json();
+        if (!health.configured) {
+          $('settingsStatus').textContent = 'The owner must finish configuring the private Groq key on Render.';
+          $('askStatus').textContent = 'The AI service is not configured yet. The owner must add the Groq key on Render.';
+          return false;
+        }
+        relayReady = true;
+        $('settingsStatus').textContent = 'Private AI connection ready. No key entry needed.';
+        $('askStatus').textContent = 'Ask a question. No key entry needed.';
+        return true;
+      } catch {
+        $('settingsStatus').textContent = 'Waking the private AI service… this can take about a minute.';
+        $('askStatus').textContent = 'Connecting to the AI service… please wait.';
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
+    $('settingsStatus').textContent = 'The private AI service did not respond. Please try again shortly.';
+    $('askStatus').textContent = 'The AI service did not respond. Please try again shortly.';
+    return false;
+  })();
+  try { return await relayCheck; }
+  finally { relayCheck = null; }
 }
 function saveSettings() {
   const provider = $('provider').value, model = $('model').value.trim();
@@ -392,6 +413,7 @@ async function ask() {
   if (!RELAY_URL && ($('provider').value !== provider || $('model').value.trim() !== model || $('apiKey').value.trim())) { $('askStatus').textContent = 'Save your changed Settings before asking.'; return; }
   $('askButton').disabled = true; $('askStatus').textContent = 'Refreshing sources and calculating the route board…';
   try {
+    if (RELAY_URL && !await checkRelay()) throw new Error('The private AI service is not ready. Please retry shortly.');
     await refreshTonight();
     $('askStatus').textContent = 'Asking your provider to explain the evidence…';
     const result = await callProvider(provider, model, key, contextForModel(question));
