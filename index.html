@@ -415,7 +415,7 @@ async function init() {
     state.routes = parseCsv(routesCsv); state.plan = plan; state.history = parseCsv(historyCsv); state.depots = parseCsv(depotCsv);
     if (state.routes.length !== 10) throw new Error(`Expected ten routes, got ${state.routes.length}.`);
     const totals = summariseHistory(state.history); renderHistory(totals); renderDepots();
-    setNotice(RELAY_URL ? 'Sources loaded. History checks complete. The private AI connection is ready.' : savedSettings ? 'Sources loaded. History checks complete. Your saved connection is ready.' : 'Sources loaded. History checks complete. Add your provider in Settings, then ask tonight’s question.');
+    setNotice(RELAY_URL ? 'Sources loaded. History checks complete. The private AI connection is checked separately.' : savedSettings ? 'Sources loaded. History checks complete. Your saved connection is ready.' : 'Sources loaded. History checks complete. Add your provider in Settings, then ask tonight’s question.');
   } catch (error) { setNotice(`Source loading failed: ${error.message}`, true); $('askStatus').textContent = 'Source loading failed; check the source links and reload.'; }
 }
 init();
