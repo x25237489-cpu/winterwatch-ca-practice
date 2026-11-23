@@ -11,7 +11,7 @@ The Render web service is [winterwatch-ca-api](https://dashboard.render.com/web/
 3. Open the public GitHub Pages link in a fresh browser. No key field should appear. Ask the default question and verify a live answer and token counts.
 4. Check Groq usage and set an organization spend limit if your account supports one. The public endpoint can consume your allowance. Groq's paid-tier spend limits are documented at https://console.groq.com/docs/spend-limits.
 
-The free Render service may sleep after 15 minutes idle and take about a minute to wake. The page shows a retry message if it cannot reach the service. The relay has request-size, per-IP, global minute, and daily in-memory limits. Those counters reset when Render restarts, and CORS Origin checks are not authentication against non-browser callers. A publicly usable bot cannot keep the ability to spend your key completely private from abuse; monitor usage and revoke the key if needed.
+The free Render service may sleep after 15 minutes idle and take about a minute to wake. The page checks its health on load and retries for up to 150 seconds before attempting a question; it then shows a retry message if the service still cannot be reached. The relay has request-size, per-IP, global minute, and daily in-memory limits. Those counters reset when Render restarts, and CORS Origin checks are not authentication against non-browser callers. A publicly usable bot cannot keep the ability to spend your key completely private from abuse; monitor usage and revoke the key if needed.
 
 The `GROQ_API_KEY` GitHub Actions repository secret previously added is **not** used by this service. GitHub Pages cannot read an Actions secret at request time. The key must be set in Render separately.
 
