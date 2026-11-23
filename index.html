@@ -48,7 +48,7 @@
           <div class="panel-head"><div><p class="eyebrow">02 / EXPLAIN</p><h2>Ask Winter Watch</h2></div><span class="pill">YOUR PROVIDER</span></div>
           <label for="question">Question for the engineer’s assistant</label>
           <textarea id="question" rows="3">Do we grit tonight? Which routes, and when do the trucks leave?</textarea>
-          <div class="ask-actions"><button id="askButton" class="primary" type="button">Fetch data &amp; ask Winter Watch <span>→</span></button><span id="askStatus" role="status">Private AI connection ready.</span></div>
+          <div class="ask-actions"><button id="askButton" class="primary" type="button">Fetch data &amp; ask Winter Watch <span>→</span></button><span id="askStatus" role="status">Checking private AI connection…</span></div>
           <div id="answer" class="answer" hidden></div>
           <div id="usage" class="usage" hidden></div>
         </section>
@@ -75,7 +75,7 @@
           <label for="model">Model name</label><input id="model" type="text" autocomplete="off" spellcheck="false" placeholder="Enter a current model ID">
           <label for="apiKey" hidden>API key</label><input id="apiKey" type="password" autocomplete="off" spellcheck="false" hidden>
           <div class="settings-actions" hidden><button id="saveSettings" class="primary" type="button">Save in this browser</button><button id="forgetKey" class="secondary" type="button">Forget key</button></div>
-          <p id="settingsStatus" class="small-note" role="status">Private AI connection configured.</p>
+          <p id="settingsStatus" class="small-note" role="status">Checking private AI connection…</p>
           <details class="price-details"><summary>Calculate cost per question</summary><p class="small-note">Enter your model’s current USD price per million input and output tokens from your provider’s pricing page. These prices stay in this browser.</p><label for="inputPrice">Input USD / 1M tokens</label><input id="inputPrice" type="number" min="0" step="0.001" placeholder="e.g. 1.00"><label for="outputPrice">Output USD / 1M tokens</label><input id="outputPrice" type="number" min="0" step="0.001" placeholder="e.g. 4.00"></details>
         </section>
 
@@ -326,8 +326,8 @@ function loadSettings() {
     document.querySelector('label[for="apiKey"]').hidden = true; $('apiKey').hidden = true;
     document.querySelector('.settings-actions').hidden = true;
     $('settings-panel').querySelector('.panel-intro').textContent = 'This page uses a private Groq connection. Visitors do not need to enter a key.';
-    $('settingsStatus').textContent = 'Private AI connection configured.';
-    $('askStatus').textContent = 'Ask a question. The AI service may take a minute to wake.';
+    $('settingsStatus').textContent = 'Checking private AI connection…';
+    $('askStatus').textContent = 'Checking private AI connection…';
     return;
   }
   let saved = {};
@@ -357,6 +357,19 @@ function loadSettings() {
   $('apiKey').placeholder = savedSettings ? 'Saved key ready — enter only to replace it' : 'Paste your own key here';
   $('settingsStatus').textContent = savedSettings ? `Connected to ${$('provider').selectedOptions[0].text} in this browser. The saved key is used automatically.` : 'No key saved.';
   $('askStatus').textContent = savedSettings ? 'Saved connection ready. Ask your question.' : 'Set your provider and key in Settings first.';
+}
+async function checkRelay() {
+  if (!RELAY_URL) return;
+  try {
+    const response = await fetch(RELAY_URL.replace(/\/ask$/, '/health'), { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const health = await response.json();
+    $('settingsStatus').textContent = health.configured ? 'Private AI connection ready. No key entry needed.' : 'The owner must finish configuring the private Groq key on Render.';
+    $('askStatus').textContent = health.configured ? 'Ask a question. The AI service may take a minute to wake.' : 'The AI service is not configured yet. The owner must add the Groq key on Render.';
+  } catch {
+    $('settingsStatus').textContent = 'The private AI service is waking or temporarily unavailable.';
+    $('askStatus').textContent = 'The AI service may take a minute to wake. Please try again shortly.';
+  }
 }
 function saveSettings() {
   const provider = $('provider').value, model = $('model').value.trim();
@@ -395,6 +408,7 @@ async function ask() {
 
 async function init() {
   loadSettings();
+  checkRelay();
   $('saveSettings').addEventListener('click', saveSettings); $('forgetKey').addEventListener('click', forgetKey); $('askButton').addEventListener('click', ask); $('refreshBoard').addEventListener('click', refreshBoard);
   try {
     const [routesCsv, plan, historyCsv, depotCsv] = await Promise.all([fetchText(SOURCE.routes), fetchText(SOURCE.plan), fetchText(SOURCE.history), fetchText(SOURCE.depots)]);
