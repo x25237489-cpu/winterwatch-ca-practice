@@ -1,30 +1,25 @@
-# Winter Watch — easy practice build
+# Winter Watch — GitHub Pages with a private Groq relay
 
-Winter Watch is an internal decision-support page for the fictional County Cavan roads team. It follows the [easy Winter Watch brief](https://bdaib-hub.pages.dev/pack/winter-watch-k7p2qm#easy). The Duty Engineer makes and records the actual decision.
+Winter Watch is a decision-support page for the fictional County Cavan roads team. The [public page](https://x25237489-cpu.github.io/winterwatch-ca-practice/) remains a self-contained `index.html` on GitHub Pages. It fetches live data and calculates route decisions in the browser. A small Node.js service on Render calls Groq using a key stored in Render's Environment settings, so visitors do not enter a key and the key is never published in HTML or GitHub.
 
-## Architecture
+## Setup
 
-The whole page is in **one self-contained `index.html`**: HTML, inline CSS, and inline JavaScript. GitHub Pages serves that file from the repository root. No build step, framework, backend, relay, or deployment secret is needed.
+The Render web service is [winterwatch-ca-api](https://dashboard.render.com/web/srv-dc20ii3l550s73fp6m6g), built from this repository's `main` branch. It starts with `npm start` and serves `https://winterwatch-ca-api.onrender.com/ask`. Its code is in `relay/server.mjs` and has no external packages.
 
-The page uses the brief's **bring-your-own-key** flow. Each user chooses OpenAI, Anthropic, Google Gemini, or Groq, enters their own provider key in Settings, and presses Save. The key is stored only in that browser's `localStorage` and sent directly to the chosen provider when that user asks a question. **Forget key** removes the saved connection. A public link does not transfer the key to anyone else. The lecturer's brief explicitly says testers will paste their own key.
+1. Open the Render service's **Environment** tab. Add `GROQ_API_KEY` with your Groq key as its value, then select **Save and deploy**. Never put the value in this repository, `index.html`, `package.json`, or chat.
+2. Visit `https://winterwatch-ca-api.onrender.com/health`. It should return `{"status":"ok","configured":true}` after the deploy. This confirms the service sees a key; it does not prove Groq will accept it.
+3. Open the public GitHub Pages link in a fresh browser. No key field should appear. Ask the default question and verify a live answer and token counts.
+4. Check Groq usage and set an organization spend limit if your account supports one. The public endpoint can consume your allowance. Groq's paid-tier spend limits are documented at https://console.groq.com/docs/spend-limits.
 
-No provider key is in this repository. The previously added `GROQ_API_KEY` GitHub Actions secret is unused by this static page; repository secrets cannot serve a live browser request.
+The free Render service may sleep after 15 minutes idle and take about a minute to wake. The page shows a retry message if it cannot reach the service. The relay has request-size, per-IP, global minute, and daily in-memory limits. Those counters reset when Render restarts, and CORS Origin checks are not authentication against non-browser callers. A publicly usable bot cannot keep the ability to spend your key completely private from abuse; monitor usage and revoke the key if needed.
 
-## What the page does
+The `GROQ_API_KEY` GitHub Actions repository secret previously added is **not** used by this service. GitHub Pages cannot read an Actions secret at request time. The key must be set in Render separately.
 
-- Fetches tonight's depots, routes, Open-Meteo forecast, and winter plan for every question.
-- Applies the plan's ground-temperature, wet-road, priority, salt, truck, driver, and timing rules in JavaScript. The route board is calculated locally before the AI explanation.
-- Reads all five winters of `history.csv` and reduces them to one summary row per route. It separates ice reports on treated and untreated nights, counts no-salt nights, and excludes an impossible-temperature row from analysis.
-- Sends the AI the plan, short depot and route summaries, the ten historical summary lines, and the user's question. The full history file and depot notes are not sent as instructions.
-- Shows provider errors, token usage, and an optional cost estimate from prices entered by the user.
+## Easy-brief alignment
 
-The source `history.csv` has **7,560 rows, 439 gritting runs and 1,152.45 tonnes of salt**. The analytical table excludes one impossible-temperature row, leaving **7,559 valid route-nights, 438 runs and 1,149.15 tonnes**. The page displays both totals to make the data-quality decision visible.
+The page still uses one self-contained HTML file and calculates the ground-temperature, wet-road, priority, salt, truck, driver, and timing rules in JavaScript. It reads 7,560 historical rows, checks 439 runs and 1,152.45 tonnes of source salt, and excludes one impossible-temperature row from the analysis. The model receives compact summaries, not the full historical file.
 
-## Use and verify
+**Important:** the written easy practice brief says testers will paste their own key and that the page should call a provider directly from the browser. This shared-key deployment follows the user's newer requirement that anyone with the link can use the chatbot without a key. It is an intentional change from that practice brief. Confirm the actual CA2 marking instructions on Moodle before submitting this as the graded version.
 
-Open the [published page](https://x25237489-cpu.github.io/winterwatch-ca-practice/). The live data and rule-based route board work without an AI key. To get a live AI answer, add your own key in Settings. Saving it once makes it available after reload in the same browser; click **Forget key** on a shared device.
-
-Before hand-in, check the public URL in a fresh browser: no key should be prefilled, the source checks should pass, and a live AI answer should appear only after that browser's user saves a valid key. Search the repository and commit history for any real key prefix. If a key was ever published, revoke it at the provider and create a new one.
-
-Fill in [HANDIN.md](HANDIN.md) with the screenshot, five benchmark results, measured cost per question, and governance sentences after testing. The easy pack is practice; the actual CA2 hand-in instructions are on Moodle.
+Fill in [HANDIN.md](HANDIN.md) with a real screenshot, five benchmark results, measured cost per question, and governance sentences after testing.
 
